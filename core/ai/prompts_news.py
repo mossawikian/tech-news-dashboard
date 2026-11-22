@@ -26,7 +26,7 @@ STYLE_SAMPLE = (
 NEWS_STRUCTURE = (
     "قالب پاسخ (دقیقاً با همین دو عنوان و به‌صورت مارک‌داون؛ بدون مقدمه و بدون هیچ توضیحی دربارهٔ خودِ گزارش):\n"
     "## ۱) متن کامل خبر به زبان ساده\n"
-    "یک متن روایی کامل و جامع (حدود ۸۰۰ تا ۱۴۰۰ کلمه؛ اگر خبر پیچیده است بیشتر) که مخاطب عمومی (سطح کلاس ششم) "
+    "یک متن روایی کامل و جامع (معمولاً ۶۰۰ تا ۱۲۰۰ کلمه؛ طول را مواد و اطلاعات واقعی تعیین می‌کنند، برای پر کردن طول چیزی اضافه یا حدس نزن) که مخاطب عمومی (سطح کلاس ششم) "
     "بتواند بدون هیچ پیش‌زمینه‌ای همهٔ ماجرا را بفهمد؛ مثل متن یک ویدیوی توضیحی، با جمله‌های کوتاه و گفتاری. "
     "ترتیب پیشنهادی (هر بخش با یک زیرعنوان کوتاه، ترجیحاً به‌شکل پرسش، با ### ):\n"
     "- شروع و قلاب: یک سناریوی ملموس یا پرسش جذاب، بعد این‌که ماجرا دقیقاً چیست و چه اتفاقی افتاده؛\n"
@@ -77,7 +77,7 @@ GROQ_NEWS_PROMPT = (
     "Research this technology news item using web search (search in both English and Persian).\n"
     "News item: {title} - {desc}\n\n"
     "Write detailed research notes in two parts.\n"
-    "PART A - FACTS (about 800 words; be complete, this is the basis for a full plain-language article): what exactly "
+    "PART A - FACTS (about 500 words; dense, no filler, no repetition; this is the basis for a full plain-language article): what exactly "
     "happened; who did it (people, institutions, companies) and where and when; how it works technically, step by "
     "step; what problem it solves and why it matters; experiments, evidence, numbers and results; limitations, "
     "criticism and what is still unproven; current status and likely next steps; useful background. "
