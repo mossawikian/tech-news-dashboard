@@ -15,8 +15,9 @@ from core.tz import today_local
 # ── پیشنهاد هفتگی موضوع دیپ‌دایو: نمره‌دهی شش‌معیاره (Groq انگلیسی جست‌وجو می‌کند ← Gemini فارسی می‌نویسد) ──
 # وزن‌ها و حدها را اینجا عوض کنید. نمرهٔ کل = ۲×قلاب + ۲×مستندات + داستان + چرا الان + افسانه + فهم‌پذیری (حداکثر ۴۰)
 DEEP_WEIGHTS = (2, 2, 1, 1, 1, 1)
-DEEP_MIN_HOOK = 3          # موضوع با نمرهٔ قلاب کمتر از این کنار گذاشته می‌شود
-DEEP_MIN_DOCS = 3          # موضوع با نمرهٔ مستندات کمتر از این کنار گذاشته می‌شود
+DEEP_MIN_HOOK = 2          # موضوع با نمرهٔ قلاب کمتر از این کنار گذاشته می‌شود (فقط ۱ حذف می‌شود)
+DEEP_MIN_DOCS = 2          # موضوع با نمرهٔ مستندات کمتر از این کنار گذاشته می‌شود (فقط ۱ حذف می‌شود)
+DEEP_DEFAULT_SCORES = (3, 3, 3, 3, 3, 3)   # اگر مدل نمره‌ها را درست ننوشت، موضوع حذف نمی‌شود و این نمرهٔ متوسط را می‌گیرد
 DEEP_TYPES = ("person", "forgotten", "debate", "now")   # ترکیب هر هفته: از هر نوع یکی (اگر باشد)
 DEEP_TYPE_FA = {"person": "داستان آدم", "forgotten": "فناوری فراموش‌شده یا مرموز",
                 "debate": "بحث و افسانه", "now": "موضوع داغ روز"}
@@ -31,7 +32,7 @@ GROQ_DEEP_IDEAS_PROMPT = (
     "Classify each topic as ONE type: person (a human story), forgotten (a forgotten, misunderstood or mysterious "
     "technology), debate (real controversy, myths or conspiracy theories that can be checked against evidence), "
     "now (a hot topic of the moment explained deeply). Aim for a mix of all four types.\n"
-    "Score each topic 1-5 on SIX criteria, honestly and strictly (most topics should NOT get 5s): "
+    "Score each topic 1-5 on SIX criteria, honestly (use the whole range, do not give everything 5): "
     "H = hook (one sentence grips and surprises); "
     "D = documentation (5 = at least three independent reliable sources including a primary source such as a paper, "
     "archive or interview, and you actually found them with web search; 1 = thin or only one source); "
@@ -61,27 +62,45 @@ def deep_total(scores):
     return sum(w * x for w, x in zip(DEEP_WEIGHTS, scores))
 
 
-def _parse_deep_ideas(text, existing, n):
-    """خطوط «عنوان | قلاب | شش نمره | نوع» را می‌خواند؛ تکراری و کم‌مستند حذف می‌شود؛ مرتب بر اساس نمرهٔ کل."""
+def _find_scores(parts):
+    """شش نمرهٔ ۱ تا ۵ را در هر ستونی (از ستون سوم به بعد) پیدا می‌کند؛ قالب‌های «4,3,5,2,3,4»، «[4 3 5 2 3 4]»،
+    «H4 D3 S5 W2 M3 C4» همه پذیرفته می‌شوند. اگر نبود None."""
+    for part in parts[2:]:
+        digits = re.findall(r"[0-9]", re.sub(r"https?://\S+", "", part))
+        if len(digits) == 6 and all(1 <= int(d) <= 5 for d in digits):
+            return tuple(int(d) for d in digits)
+    return None
+
+
+def _parse_deep_ideas(text, existing, n, diag=None):
+    """خطوط «عنوان | قلاب | شش نمره | نوع» را می‌خواند؛ تکراری و موضوع بسیار کم‌مستند حذف می‌شود؛ مرتب بر اساس نمرهٔ کل.
+    قالب نمره و نوع سخت‌گیرانه نیست (اگر خراب بود، نمرهٔ متوسط می‌گیرد). diag (dict) شمارش دلیل حذف‌ها را می‌گیرد."""
+    diag = diag if diag is not None else {}
+    diag.update(lines=0, bad_format=0, no_scores=0, low=0, dup=0)
     if not text:
         return []
     body = text.partition("\n\n---\n")[0]
     out = []
     for line in _digits(body).splitlines():
-        line = re.sub(r"^\s*(?:[-*•]+|\d+[.)])\s*", "", line)
-        parts = [x.strip(" *\t") for x in line.split("|")]
-        if len(parts) < 3 or len(parts[0]) < 4:
+        line = re.sub(r"^\s*(?:[-*•#]+|\d+[.)])\s*", "", line)
+        if "|" not in line:
             continue
-        m = re.search(r"([1-5])\s*[,،]\s*([1-5])\s*[,،]\s*([1-5])\s*[,،]\s*([1-5])\s*[,،]\s*([1-5])\s*[,،]\s*([1-5])", parts[2])
-        if not m:
+        parts = [x.strip(" *\t[]") for x in line.split("|")]
+        if len(parts) < 2 or len(parts[0]) < 4:
+            diag["bad_format"] += 1
             continue
-        scores = tuple(int(x) for x in m.groups())
-        if scores[0] < DEEP_MIN_HOOK or scores[1] < DEEP_MIN_DOCS:
+        diag["lines"] += 1
+        scores = _find_scores(parts)
+        if scores is None:
+            diag["no_scores"] += 1
+            scores = DEEP_DEFAULT_SCORES
+        elif scores[0] < DEEP_MIN_HOOK or scores[1] < DEEP_MIN_DOCS:
+            diag["low"] += 1
             continue
-        typ = (parts[3].lower().strip() if len(parts) > 3 else "")
-        typ = typ if typ in DEEP_TYPES else ""
+        typ = next((p.lower() for p in parts[2:] if p.lower() in DEEP_TYPES), "")
         title, why = parts[0], parts[1]
         if any(_similar(title, e) for e in list(existing) + [o["title"] for o in out]):
+            diag["dup"] += 1
             continue
         out.append({"title": title, "why": why, "scores": list(scores), "total": deep_total(scores), "type": typ})
     out.sort(key=lambda x: -x["total"])
@@ -133,4 +152,7 @@ def suggest_deep_topics(existing=(), n=8):
     box.empty()
     if not text:
         return None
-    return _parse_deep_ideas(text, existing, n)
+    diag = {}
+    items = _parse_deep_ideas(text, existing, n, diag)
+    st.session_state["_deep_diag"] = {**diag, "raw": text[:1500]}   # برای نمایش دلیل وقتی چیزی پیدا نشد
+    return items
