@@ -10,12 +10,13 @@ from core.state import current_week
 from core.export import DOCX_MIME, HAS_DOCX, make_docx
 from core.daily import ensure_daily_news
 from core.helpers import header
+from core.tz import today_local
 
 
 def _suggest_box():
     ss = st.session_state
     with st.expander(":material/newspaper: پیشنهاد خبرهای تازه (فقط ۳ روز تا تاریخ انتخاب‌شده)"):
-        day = st.date_input("تا تاریخ", value=dt.date.today(), key="sugg_date")
+        day = st.date_input("تا تاریخ", value=today_local(), key="sugg_date")
         st.caption(f"فقط خبرهای منتشرشده از {day - dt.timedelta(days=3)} تا {day} پیشنهاد می‌شود. "
                    "هر بار یک درخواست مصرف می‌شود.")
         if st.button("دریافت پیشنهاد", key="sugg_go", type="primary"):
@@ -30,7 +31,7 @@ def _suggest_box():
                 if st.button(":material/add: افزودن به صف", key=f"sugg_add_{i}"):
                     ss.news_list.append({"title": it["title"], "desc": f"{it['desc']} ({it['source']}، {it['date']})",
                                          "icon": "📰", "status": "Pending", "ai": "", "research": [],
-                                         "added": dt.date.today().isoformat(), "week": current_week(),
+                                         "added": today_local().isoformat(), "week": current_week(),
                                          "url": it.get("url", "")})
                     ss.suggestions.pop(i)
                     st.rerun()
@@ -59,5 +60,5 @@ def render():
         if st.form_submit_button("افزودن خبر") and t.strip():
             st.session_state.news_list.append(
                 {"title": t.strip(), "desc": d.strip(), "icon": "📰", "status": "Pending", "ai": "", "research": [],
-                                         "added": dt.date.today().isoformat(), "week": current_week()})
+                                         "added": today_local().isoformat(), "week": current_week()})
             st.rerun()

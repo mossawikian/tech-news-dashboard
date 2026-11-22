@@ -5,12 +5,13 @@ import datetime as dt
 import streamlit as st
 
 from core.helpers import MONTHS_FA, WEEKDAYS_FA, H, esc, fa
+from core.tz import today_local
 
 
 def render_calendar():
     ss = st.session_state
     y, m = ss.cal_year, ss.cal_month
-    today_iso = dt.date.today().isoformat()
+    today_iso = today_local().isoformat()
     with st.container(border=True):
         H('<div class="card-title">تقویم محتوا</div>')
         with st.container(key="keep_cal_nav"):

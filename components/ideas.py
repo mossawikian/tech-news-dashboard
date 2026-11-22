@@ -10,6 +10,7 @@ from core.ai import DEEP_TYPE_FA, research_deep
 from core.deep_suggest import ensure_deep_suggestions, refill_button, reject_topic
 from core.helpers import H, chip, esc, fa
 from core.state import current_week, normalize_deep, save_data
+from core.tz import today_local
 
 _FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹"
 _HEAD = re.compile(r"(?m)^## ")
@@ -69,7 +70,7 @@ def render_ideas():
         H('<div class="card-title">ایده‌های موضوعات دیپ‌دایو</div>')
         week, _off = week_nav(week_range, prefix="deep_")
         pub = st.date_input("تاریخ انتشار پیشنهادی",
-                            value=dt.date.today() + dt.timedelta(days=3), key="pub_date")
+                            value=today_local() + dt.timedelta(days=3), key="pub_date")
         cur = current_week()   # پیشنهادِ جمعه برای هفتهٔ بعد ثبت می‌شود ولی تا آن موقع در «هفتهٔ جاری» نمایش داده می‌شود
         shown = [i for i, t in enumerate(ss.deep_topics) if min(t.get("week", cur), cur) == week]
         if not shown:

@@ -8,8 +8,9 @@ from core.ai.config import SEARCH_PRIORITY
 from core.ai.gemini import ask_ai
 from core.ai.prompts_deep import DEEP_FORMAT, DEEP_STYLE_OVERRIDE, GROQ_DEEP_PROMPT
 from core.ai.prompts_news import (CONSPIRACY_FORMAT, FROM_SOURCES_RULES, GROQ_CONSPIRACY_PROMPT, GROQ_NEWS_PROMPT,
-                                  NEWS_PROMPT, NEWS_RULES, NEWS_STRUCTURE)
+                                  NEWS_PROMPT, NEWS_RULES, NEWS_STRUCTURE, STYLE_SAMPLE)
 from core.groq_client import GroqError
+from core.tz import today_local
 
 
 def _materials(text, srcs, max_text=14000, max_snippets=6000):
@@ -73,7 +74,7 @@ def _hybrid(groq_prompt, gemini_body, fallback_prompt, box=None, gemini_first=Fa
             _groq_note(exc)
         else:
             ph.empty()
-            prompt = (FROM_SOURCES_RULES.format(today=dt.date.today().isoformat()) + gemini_body
+            prompt = (FROM_SOURCES_RULES.format(today=today_local().isoformat()) + gemini_body
                       + "\n\n" + _materials(gtext, srcs))
             out = ask_ai(prompt, box, ext_sources=[(u, m["title"]) for u, m in srcs.items()])
             if out and st.session_state.get("active_model"):
@@ -87,7 +88,7 @@ def _hybrid(groq_prompt, gemini_body, fallback_prompt, box=None, gemini_first=Fa
 def research_news(title, desc, box=None):
     """تحقیق یک خبر (قالب ۶ بخشی، کوتاه و مارک‌داون، با بخش مفصل نظریه‌های توطئه)."""
     return _hybrid(GROQ_NEWS_PROMPT.format(title=title, desc=desc),
-                   NEWS_STRUCTURE.format(title=title, desc=desc),
+                   STYLE_SAMPLE + NEWS_STRUCTURE.format(title=title, desc=desc),
                    NEWS_PROMPT.format(title=title, desc=desc), box,
                    gemini_first=(SEARCH_PRIORITY == "gemini"))
 

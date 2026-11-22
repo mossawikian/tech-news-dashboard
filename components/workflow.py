@@ -10,6 +10,7 @@ from components.week_nav import week_nav, week_range
 from core.ai import research_news
 from core.helpers import H, chip, esc, fa, svg
 from core.state import WEEKDAY_FA, current_week, now_str
+from core.tz import today_local
 
 
 def news_item(idx, item, show_script=False):
@@ -20,10 +21,11 @@ def news_item(idx, item, show_script=False):
         decided = item.get("decided", "")
         when = fa(decided) if decided else "ثبت نشده (یک‌بار دیگر دکمهٔ «" + verb + "» را بزنید)"
         date_line = f'<div class="muted" style="margin-top:4px">تاریخ {verb}: {when}</div>'
+    push_chip = '<span class="chip chip-push">🔔 پیشنهاد اعلان</span>' if item.get("push") else ""
     with st.container(key=f"newscard_{idx}_{status}"):
         H('<div class="news-head">'
           f'<div class="avatar">{svg("news", 22)}</div>'
-          f'<div><div class="news-title">{esc(item["title"])} {chip(status)}</div>'
+          f'<div><div class="news-title">{esc(item["title"])} {chip(status)}{push_chip}</div>'
           f'<div class="news-desc">{esc(item["desc"])}</div>{date_line}</div></div>')
 
         with st.container(key=f"keep_news_{idx}"):
@@ -73,7 +75,7 @@ def news_item(idx, item, show_script=False):
 def _day_label(iso):
     try:
         d = dt.date.fromisoformat(iso)
-        return f"{svg('calendar', 16)} {WEEKDAY_FA[d.weekday()]} {fa(iso)}" + (" · امروز" if d == dt.date.today() else "")
+        return f"{svg('calendar', 16)} {WEEKDAY_FA[d.weekday()]} {fa(iso)}" + (" · امروز" if d == today_local() else "")
     except ValueError:
         return "—"
 

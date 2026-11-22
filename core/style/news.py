@@ -68,4 +68,37 @@ CSS_NEWS = """
 .q-row { display: flex; flex-direction: column; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
 .q-row span { color: var(--faint); font-size: .72rem; }
 
+
+/* نسخه‌های تحقیق: راست‌چین کامل + هر نسخه یک رنگ (مرز، پس‌زمینه و نوار «پایان نسخه») */
+[class*="st-key-newscard_"] [data-testid="stMarkdownContainer"],
+[class*="st-key-newscard_"] [data-testid="stExpanderDetails"],
+[class*="st-key-newscard_"] [data-testid="stCaptionContainer"] { direction: rtl !important; text-align: right !important; }
+[class*="st-key-ver_"] [data-testid="stMarkdownContainer"] { direction: rtl !important; text-align: right !important; line-height: 2; }
+[class*="st-key-ver_"] [data-testid="stMarkdownContainer"] ul,
+[class*="st-key-ver_"] [data-testid="stMarkdownContainer"] ol { direction: rtl !important; padding-right: 1.6rem !important; padding-left: 0 !important; margin-right: 0 !important; }
+[class*="st-key-ver_"] [data-testid="stMarkdownContainer"] li { direction: rtl !important; text-align: right !important; }
+[class*="st-key-ver_"] [data-testid="stMarkdownContainer"] blockquote { border-right: 3px solid var(--vc); border-left: none; padding-right: 12px; padding-left: 0; }
+[class*="st-key-ver_"] [data-testid="stMarkdownContainer"] h2,
+[class*="st-key-ver_"] [data-testid="stMarkdownContainer"] h3 { text-align: right !important; color: var(--vc); }
+[class*="st-key-ver_"] { margin: 10px 0; }
+[class*="st-key-ver_"] [data-testid="stExpander"] details {
+    background: var(--vc-soft) !important; border: 1px solid var(--vc) !important;
+    border-right: 5px solid var(--vc) !important; border-radius: var(--rs);
+}
+[class*="st-key-ver_"] [data-testid="stExpander"] summary,
+[class*="st-key-ver_"] [data-testid="stExpander"] summary p { color: var(--vc) !important; font-weight: 700; direction: rtl; }
+[class*="st-key-ver_"] [data-testid="stExpanderDetails"] { border-top: 1px dashed var(--vc); padding-top: 12px; }
+.ver-end { margin-top: 16px; padding-top: 8px; border-top: 3px solid var(--vc); color: var(--vc);
+           text-align: center; font-size: .8rem; font-weight: 700; }
+[class*="clr0x"] { --vc: #38bdf8; --vc-soft: rgba(56,189,248,.08); }
+[class*="clr1x"] { --vc: #a78bfa; --vc-soft: rgba(167,139,250,.08); }
+[class*="clr2x"] { --vc: #fb923c; --vc-soft: rgba(251,146,60,.08); }
+[class*="clr3x"] { --vc: #34d399; --vc-soft: rgba(52,211,153,.08); }
+[class*="clr4x"] { --vc: #fbbf24; --vc-soft: rgba(251,191,36,.08); }
+[class*="clr5x"] { --vc: #fb7185; --vc-soft: rgba(251,113,133,.08); }
+
+[class*="st-key-newscard_"] [data-testid="stCode"] { direction: ltr !important; text-align: left !important; }
+
+/* برچسب «پیشنهاد اعلان» */
+.chip-push { background: var(--accent-soft); color: var(--accent-ink); }
 """

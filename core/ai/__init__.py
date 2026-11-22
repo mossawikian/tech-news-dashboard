@@ -19,7 +19,7 @@ from core.ai.deep_ideas import DEEP_TYPE_FA, pick_top, suggest_deep_topics  # no
 from core.ai.diagnostics import blocked_count, diagnose, quota_status, reset_model_cache  # noqa: F401
 from core.ai.gemini import ask_ai  # noqa: F401
 from core.ai.gemini_models import _get_keys, usage_today  # noqa: F401
-from core.ai.prompts_news import NEWS_STRUCTURE, build_followup_prompt  # noqa: F401
+from core.ai.prompts_news import NEWS_STRUCTURE, STYLE_SAMPLE, build_followup_prompt  # noqa: F401
 from core.ai.research import research_conspiracies, research_deep, research_news  # noqa: F401
 from core.ai.suggest_news import suggest_news  # noqa: F401
 from core.ai.text_utils import _similar  # noqa: F401

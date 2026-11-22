@@ -19,6 +19,7 @@ from core.feeds.config import BUDGET, CACHE_SECONDS, WORKERS
 from core.feeds.fetch import _fetch_hn, _gn_url, _job_feed
 from core.feeds.rank import _build, _norm_url, _select
 from core.feeds.sources import FEEDS, NEWS_QUERIES
+from core.tz import today_local
 
 
 # ── نقطهٔ ورود ─────────────────────────────────────────────────────────────────────────────
@@ -101,7 +102,7 @@ def format_candidates(cands, snippet=200):
 
 def health_report():
     """برای دکمهٔ «تست منابع خبر» در تنظیمات."""
-    today = dt.date.today()
+    today = today_local()
     start = today - dt.timedelta(days=3)
     cands, health = collect(start, today, refresh=True)
     ok = [k for k, v in health.items() if v[0]]

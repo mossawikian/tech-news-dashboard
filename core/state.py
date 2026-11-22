@@ -9,6 +9,7 @@ from pathlib import Path
 import streamlit as st
 
 from core.storage import load_remote, remote_enabled, save_remote
+from core.tz import now_local, now_naive, today_local
 
 # تحقیق‌های هر خبر تا این تعداد روز پس از آخرین فعالیت در آرشیف می‌مانند، سپس خودکار حذف می‌شوند.
 ARCHIVE_DAYS = 20
@@ -24,7 +25,7 @@ def week_start(d):
 
 
 def current_week():
-    return week_start(dt.date.today()).isoformat()
+    return week_start(today_local()).isoformat()
 
 NEWS_DEFAULT = [
     {"title": "ربات‌های انسان‌نما با یادگیری شهودی",
@@ -48,7 +49,7 @@ DATA_FILE = Path(__file__).resolve().parent.parent / "data.json"
 
 
 def now_str():
-    return dt.datetime.now().strftime(TS_FMT)
+    return now_local().strftime(TS_FMT)
 
 
 def _parse(ts):
@@ -107,12 +108,12 @@ def normalize_news():
             n["research"] = [{"v": 1, "ts": now_str(), "q": "", "text": n["ai"], "model": ""}]
         n["ai"] = ""
         if not n.get("added"):
-            n["added"] = (n.get("decided") or "")[:10] or dt.date.today().isoformat()
+            n["added"] = (n.get("decided") or "")[:10] or today_local().isoformat()
         if not n.get("week"):
             try:
                 n["week"] = week_start(dt.date.fromisoformat(n["added"])).isoformat()
             except ValueError:
-                n["added"], n["week"] = dt.date.today().isoformat(), current_week()
+                n["added"], n["week"] = today_local().isoformat(), current_week()
 
 
 def normalize_deep():
@@ -121,23 +122,23 @@ def normalize_deep():
         t.setdefault("scenario", "")
         t.setdefault("narration", "")
         if not t.get("added"):
-            t["added"] = dt.date.today().isoformat()
+            t["added"] = today_local().isoformat()
         if not t.get("week"):
             try:
                 t["week"] = week_start(dt.date.fromisoformat(t["added"])).isoformat()
             except ValueError:
-                t["added"], t["week"] = dt.date.today().isoformat(), current_week()
+                t["added"], t["week"] = today_local().isoformat(), current_week()
 
 
 def new_topic(title):
     return {"title": title, "status": "Pending", "scenario": "", "narration": "",
-            "added": dt.date.today().isoformat(), "week": current_week()}
+            "added": today_local().isoformat(), "week": current_week()}
 
 
 def purge_old_weeks():
     """خبرهای قدیمی‌تر از (هفتهٔ جاری + KEEP_PREVIOUS_WEEKS هفتهٔ قبل) را حذف می‌کند."""
     ss = st.session_state
-    cutoff = (week_start(dt.date.today()) - dt.timedelta(weeks=KEEP_PREVIOUS_WEEKS)).isoformat()
+    cutoff = (week_start(today_local()) - dt.timedelta(weeks=KEEP_PREVIOUS_WEEKS)).isoformat()
     keep = [n for n in ss.news_list if n.get("week", "") >= cutoff]
     old_topics = len(ss.deep_topics)
     ss.deep_topics = [t for t in ss.deep_topics if t.get("week", "") >= cutoff]
@@ -155,7 +156,7 @@ def purge_old_weeks():
 
 def purge_expired():
     """تحقیق‌هایی که ARCHIVE_DAYS روز از آخرین فعالیتشان گذشته حذف می‌شوند (عنوان، وضعیت و اسکریپت می‌مانند)."""
-    limit = dt.datetime.now() - dt.timedelta(days=ARCHIVE_DAYS)
+    limit = now_naive() - dt.timedelta(days=ARCHIVE_DAYS)
     removed = 0
     for n in st.session_state.news_list:
         versions = n.get("research") or []
@@ -173,12 +174,12 @@ def days_left(item):
     last = _parse(versions[-1].get("ts")) if versions else None
     if not last:
         return ARCHIVE_DAYS
-    return max((last + dt.timedelta(days=ARCHIVE_DAYS) - dt.datetime.now()).days, 0)
+    return max((last + dt.timedelta(days=ARCHIVE_DAYS) - now_naive()).days, 0)
 
 
 def init_state():
     ss = st.session_state
-    today = dt.date.today()
+    today = today_local()
     saved = load_data() if "news_list" not in ss else {}
     ss.setdefault("news_list", saved.get("news_list") or copy.deepcopy(NEWS_DEFAULT))
     ss.setdefault("deep_topics", saved.get("deep_topics") or copy.deepcopy(DEEP_DEFAULT))

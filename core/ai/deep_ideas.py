@@ -9,6 +9,7 @@ from core.ai.gemini import ask_ai
 from core.ai.research import _groq_cached, _groq_note, _materials
 from core.ai.text_utils import _similar
 from core.groq_client import GroqError
+from core.tz import today_local
 
 
 # ── پیشنهاد هفتگی موضوع دیپ‌دایو: نمره‌دهی شش‌معیاره (Groq انگلیسی جست‌وجو می‌کند ← Gemini فارسی می‌نویسد) ──
@@ -106,7 +107,7 @@ def pick_top(items, k=4):
 
 def suggest_deep_topics(existing=(), n=8):
     """n موضوع نمره‌دار دیپ‌دایو (مرتب بر اساس نمره). خروجی: فهرست یا None در صورت خطا."""
-    today = dt.date.today().isoformat()
+    today = today_local().isoformat()
     avoid_en = ("ALREADY USED or REJECTED topics (do not repeat the same subjects): " + "; ".join(list(existing)[:40]) + "\n"
                 if existing else "")
     avoid_fa = ("این موضوع‌ها قبلاً بوده یا رد شده‌اند و تکرارشان نکن: " + "؛ ".join(list(existing)[:40])) if existing else ""

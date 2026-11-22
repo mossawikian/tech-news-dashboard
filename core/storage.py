@@ -10,6 +10,7 @@ import streamlit as st
 
 API = "https://api.github.com/gists/"
 FILENAME = "data.json"
+PICKS_FILENAME = "push_picks.json"   # خبرهای اعلان امروز؛ اسکریپت GitHub Actions (نیمه‌شب) آن را می‌نویسد
 TIMEOUT = 10
 
 
@@ -53,3 +54,15 @@ def save_remote(text):
     token, gist_id = _creds()
     body = json.dumps({"files": {FILENAME: {"content": text}}}).encode("utf-8")
     _open(urllib.request.Request(API + gist_id, data=body, method="PATCH", headers=_headers(token)))
+
+
+def load_picks():
+    """خبرهای اعلان روزانه {"date": "YYYY-MM-DD", "items": [...]} از همان Gist؛ اگر نبود {}."""
+    token, gist_id = _creds()
+    info = json.loads(_open(urllib.request.Request(API + gist_id, headers=_headers(token))))
+    f = info.get("files", {}).get(PICKS_FILENAME)
+    if not f:
+        return {}
+    content = (_open(urllib.request.Request(f["raw_url"], headers=_headers(token))) if f.get("truncated")
+               else f.get("content", ""))
+    return json.loads(content) if content.strip() else {}

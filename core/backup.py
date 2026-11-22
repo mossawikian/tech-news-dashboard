@@ -5,6 +5,7 @@ import json
 import streamlit as st
 
 from core.state import normalize_news, save_data
+from core.tz import now_local, today_local
 
 KEYS = ("news_list", "deep_topics", "events", "daily")
 
@@ -12,7 +13,7 @@ KEYS = ("news_list", "deep_topics", "events", "daily")
 def make_backup() -> str:
     ss = st.session_state
     data = {k: ss.get(k, {} if k == "daily" else []) for k in KEYS}
-    data["_backup_at"] = dt.datetime.now().isoformat(timespec="seconds")
+    data["_backup_at"] = now_local().isoformat(timespec="seconds")
     return json.dumps(data, ensure_ascii=False, indent=1)
 
 
@@ -28,7 +29,7 @@ def backup_section():
     n = len(ss.get("news_list", []))
     st.caption(f"{n} خبر در حافظه است. گاهی یک نسخهٔ پشتیبان دانلود کنید تا اگر Gist یا توکن مشکل پیدا کرد، چیزی از دست نرود.")
     st.download_button(":material/download: دانلود پشتیبان (JSON)", data=make_backup(),
-                       file_name=f"sade-backup-{dt.date.today().isoformat()}.json",
+                       file_name=f"sade-backup-{today_local().isoformat()}.json",
                        mime="application/json", key="dl_backup")
     up = st.file_uploader("بازگردانی از فایل پشتیبان", type=["json"], key="restore_file")
     if up is None:

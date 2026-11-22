@@ -3,9 +3,13 @@ import time
 
 import streamlit as st
 
-from core.ai import NEWS_STRUCTURE, ask_ai, build_followup_prompt, research_conspiracies
-from core.helpers import fa
+from core.ai import NEWS_STRUCTURE, STYLE_SAMPLE, ask_ai, build_followup_prompt, research_conspiracies
+from core.helpers import H, fa
 from core.state import ARCHIVE_DAYS, days_left, now_str, save_data
+
+
+# رنگ هر نسخه به ترتیب (با CSS هم‌رنگ است: core/style/news.py)
+VER_COLORS = ["🔵", "🟣", "🟠", "🟢", "🟡", "🔴"]
 
 
 def add_version(item, question, text, secs=None):
@@ -25,11 +29,14 @@ def research_block(idx, item):
                f"(پس از {fa(ARCHIVE_DAYS)} روز بدون فعالیت، خودکار حذف می‌شود)")
     for i, v in enumerate(versions):
         title = "بررسی اولیه" if not v.get("q") else v["q"][:60] + ("…" if len(v["q"]) > 60 else "")
-        with st.expander(f"نسخهٔ {fa(v['v'])} — {title} · {fa(v['ts'])}", expanded=False):
-            st.markdown(v["text"])
-            info = " · ".join(x for x in (v.get("model"), f"{fa(v['secs'])} ثانیه" if v.get("secs") else "") if x)
-            if info:
-                st.caption(info)
+        c = i % len(VER_COLORS)   # هر نسخه رنگ خودش را دارد تا معلوم باشد متن هر پنجره کجا تمام می‌شود
+        with st.container(key=f"ver_{idx}_{i}_clr{c}x"):
+            with st.expander(f"{VER_COLORS[c]} نسخهٔ {fa(v['v'])} — {title} · {fa(v['ts'])}", expanded=False):
+                st.markdown(v["text"])
+                info = " · ".join(x for x in (v.get("model"), f"{fa(v['secs'])} ثانیه" if v.get("secs") else "") if x)
+                if info:
+                    st.caption(info)
+                H(f'<div class="ver-end">{VER_COLORS[c]} پایان نسخهٔ {fa(v["v"])}</div>')
 
     if st.button(":material/travel_explore: بررسی عمیق‌تر نظریه‌های توطئه", key=f"cons_{idx}",
                  help="یک جست‌وجوی جداگانه فقط برای نظریه‌ها و شایعات؛ نتیجه به‌عنوان نسخهٔ جدید ذخیره می‌شود"):
@@ -53,8 +60,8 @@ def research_block(idx, item):
 
 
 MANUAL_RULES = (
-    "تو ویراستار تحقیق یک کانال تکنولوژی فارسی‌زبان هستی. با جست‌وجوی وب تحقیق کن و فقط مهم‌ترین و ضروری‌ترین "
-    "اطلاعات را به فارسی روان بنویس. اعداد، تاریخ‌ها و نام‌ها را بیاور و هر ادعای مهم را با نام منبعش همراه کن. "
+    "تو نویسندهٔ متن یک کانال تکنولوژی فارسی‌زبان هستی. با جست‌وجوی وب تحقیق کن و ماجرای خبر را کامل، دقیق و "
+    "به فارسی ساده و روان بنویس. اعداد، تاریخ‌ها و نام‌ها را بیاور و هر ادعای مهم را با نام منبعش همراه کن. "
     "در پایان بخشی به نام «منابع» با لینک واقعی صفحه‌هایی که واقعاً خوانده‌ای بیاور؛ هرگز لینک نساز. "
     "اگر دربارهٔ درستی چیزی مطمئن نیستی، صریحاً بگو.\n\n"
 )
@@ -62,7 +69,7 @@ MANUAL_RULES = (
 
 def manual_prompt(item):
     """همان قالب اپ، ولی برای چسباندن در چت Gemini (لینک منابع را خود چت می‌نویسد)."""
-    return MANUAL_RULES + NEWS_STRUCTURE.format(title=item["title"], desc=item["desc"])
+    return MANUAL_RULES + STYLE_SAMPLE + NEWS_STRUCTURE.format(title=item["title"], desc=item["desc"])
 
 
 def _save_manual(idx):

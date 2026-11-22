@@ -7,13 +7,19 @@
 - مدل ۵ خبر می‌آورد؛ سه تا امروز اضافه می‌شود و بقیه در «ذخیره» می‌ماند و فردا بدون جستجو استفاده می‌شود
   (به شرط آنکه هنوز در بازهٔ ۳ روز اخیر باشد).
 - تلاش دوباره فقط با دکمهٔ دستی انجام می‌شود.
+- «امروز» به وقت محلی (Asia/Karachi) حساب می‌شود؛ پس خبرهای جدید از ساعت ۰۰:۰۰ نیمه‌شب (اولین بازشدن برنامه) می‌آیند.
+- علاوه بر این ۳ خبر، ۳ خبری که اعلان‌های نیمه‌شب را ساخته‌اند (GitHub Actions، فایل push_picks.json در Gist)
+  هم با برچسب «پیشنهاد اعلان» به همان روز اضافه می‌شوند.
 """
 import datetime as dt
+import time
 
 import streamlit as st
 
-from core.ai import _get_keys, suggest_news
+from core.ai import _get_keys, _similar, suggest_news
 from core.state import save_data, week_start
+from core.storage import load_picks, remote_enabled
+from core.tz import today_local
 
 DAILY_COUNT = 3          # تعداد خبر اضافه‌شده در هر روز
 FETCH_COUNT = 6          # تعداد خبر درخواستی در هر جستجو (مازاد برای روزهای بعد ذخیره می‌شود)
@@ -43,10 +49,54 @@ def _usable_reserve(today):
     return [r for r in ss.daily.get("reserve", []) if r.get("date", "") >= start and r["title"] not in have]
 
 
+PICKS_CHECK_SECONDS = 300   # هر چند ثانیه حداکثر یک‌بار Gist برای خبرهای اعلان بررسی شود
+
+
+def _add_push_picks():
+    """خبرهای اعلان امروز (که اسکریپت نیمه‌شب در Gist گذاشته) را بدون هیچ درخواست هوش مصنوعی به صف اضافه می‌کند.
+    هر روز فقط یک‌بار اضافه می‌شود؛ اگر هنوز نرسیده بود، حداکثر هر ۵ دقیقه دوباره نگاه می‌کند."""
+    ss = st.session_state
+    if not remote_enabled():
+        return
+    today = today_local()
+    iso = today.isoformat()
+    if ss.daily.get("picks_added") == iso or time.time() - ss.get("_picks_checked", 0) < PICKS_CHECK_SECONDS:
+        return
+    ss["_picks_checked"] = time.time()
+    try:
+        picks = load_picks()
+    except Exception as exc:  # noqa: BLE001
+        st.caption(f"خواندن خبرهای اعلان از Gist ناموفق بود: {str(exc)[:100]}")
+        return
+    date = picks.get("date", "")
+    # فقط خبرهای امروز (به وقت محلی)؛ اگر اسکریپت هنوز اجرا نشده، فایلِ دیروز نادیده گرفته می‌شود
+    if date != iso or not picks.get("items"):
+        return
+    have = [n["title"] for n in ss.news_list]
+    week = week_start(today).isoformat()
+    added = 0
+    for it in picks["items"]:
+        title = (it.get("title") or "").strip()
+        if not title or any(_similar(title, h) for h in have):
+            continue
+        desc = (it.get("desc") or "").strip()
+        meta = "، ".join(x for x in (it.get("source", ""), it.get("date", "")) if x)
+        ss.news_list.append({
+            "title": title, "desc": f"{desc} ({meta})" if meta else desc, "icon": "🔔", "status": "Pending",
+            "ai": "", "research": [], "added": iso, "week": week, "push": True, "url": it.get("url", "")})
+        have.append(title)
+        added += 1
+    ss.daily["picks_added"] = iso
+    save_data()
+    if added:
+        st.toast(f"{added} خبر اعلان نیمه‌شب هم به صف اضافه شد.")
+
+
 def ensure_daily_news():
     ss = st.session_state
-    today = dt.date.today()
+    today = today_local()
     iso = today.isoformat()
+    _add_push_picks()
     if today.weekday() in SKIP_WEEKDAYS or _done_today(iso):
         return
 
