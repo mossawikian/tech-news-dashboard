@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 
 from core.ai import MIN_SECONDS_BETWEEN_CALLS, _get_keys, _similar, pick_top, suggest_deep_topics
+from core.helpers import fa
 from core.state import new_topic, save_data, week_start
 
 TZ = ZoneInfo("Asia/Karachi")
@@ -51,6 +52,17 @@ def _fresh_reserve():
     return [r for r in ss.daily.get("deep_reserve", []) if not any(_similar(r["title"], k) for k in known)]
 
 
+def _explain_empty():
+    """وقتی هیچ موضوعی نیامد: دلیل (چند خط خوانده شد و چرا حذف شد) + متن خام برای بررسی."""
+    d = st.session_state.get("_deep_diag")
+    if not d:
+        return
+    st.caption(f"مدل {fa(d['lines'])} موضوع نوشت؛ {fa(d['bad_format'])} خط قالب نامعتبر، {fa(d['low'])} با نمرهٔ بسیار کم، "
+               f"{fa(d['dup'])} تکراری یا شبیه موضوع‌های قبلی/ردشده بود.")
+    with st.expander("پاسخ خام مدل (برای بررسی)"):
+        st.code(d.get("raw", ""), language=None)
+
+
 def _fetch_and_store(cycle, week, today_iso, want):
     """یک جست‌وجو؛ want موضوع برتر اضافه می‌شود و بقیه به ذخیره می‌رود. برمی‌گرداند: تعداد اضافه‌شده یا None (خطا)."""
     ss = st.session_state
@@ -85,6 +97,7 @@ def ensure_deep_suggestions():
         st.toast(f"{n} موضوع جدید دیپ‌دایو پیشنهاد شد.")
     elif n == 0:
         st.info("این هفته موضوع تازهٔ مناسبی پیدا نشد.")
+        _explain_empty()
 
 
 def reject_topic(idx):
@@ -121,3 +134,4 @@ def refill_button(week_topics_count):
             st.rerun()
         elif n == 0:
             st.info("موضوع تازهٔ مناسبی پیدا نشد.")
+            _explain_empty()
