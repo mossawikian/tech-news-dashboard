@@ -16,6 +16,7 @@ URL = "https://api.groq.com/openai/v1/chat/completions"
 MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]   # هر دو ابزار browser_search دارند؛ اگر اولی خطا داد، دومی
 MAX_OUT_TOKENS = 3500   # سقف خروجی؛ پلن رایگان سقف توکن در دقیقه دارد
 TIMEOUT = 120
+MIN_GAP = 90            # حداقل فاصلهٔ (ثانیه) بین دو جست‌وجوی Groq؛ هر جست‌وجو چند هزار توکن مصرف می‌کند و سقف دقیقه‌ای پلن رایگان کم است
 SYSTEM = ("You are a careful web research assistant. Use web search. Report only what you actually found in "
           "sources; never invent facts, dates or links. Always name the source of each claim.")
 
@@ -104,13 +105,31 @@ def _block(exc):
         _state().update(until=time.time() + 3600, why="کلید Groq نامعتبر یا بدون دسترسی")
 
 
+def _wait_gap():
+    """اگر آخرین جست‌وجوی Groq کمتر از MIN_GAP ثانیه پیش بوده، صبر می‌کند (برای نخوردن به سقف دقیقه‌ای)."""
+    gap = MIN_GAP - (time.time() - _state().get("last", 0))
+    if gap > 0:
+        ph = st.empty()
+        ph.caption(f":material/hourglass_top: برای رعایت سقف Groq، {int(gap) + 1} ثانیه صبر می‌کنیم...")
+        time.sleep(gap)
+        ph.empty()
+
+
 def search(prompt):
     """یک جست‌وجو. خروجی: (متن یافته‌ها، {url: {title, content}}). در خطا GroqError."""
+    try:
+        return _search(prompt)
+    finally:
+        _state()["last"] = time.time()    # زمان پایان؛ فاصله از همین لحظه حساب می‌شود
+
+
+def _search(prompt):
     key = groq_key()
     if not key:
         raise GroqError("GROQ_API_KEY تنظیم نشده است")
     if time.time() < _state()["until"]:
         raise GroqError(f"Groq موقتاً کنار گذاشته شده ({_state()['why']})")
+    _wait_gap()
     last = None
     for model in MODELS:
         body = {"model": model, "temperature": 0.3, "max_completion_tokens": MAX_OUT_TOKENS,
